@@ -1,7 +1,12 @@
-from pinecone.grpc import PineconeGRPC as Pinecone, ServerlessSpec
+from pinecone import Pinecone
+import os
+from dotenv import load_dotenv
 
-def getPinecone():
-    pc = Pinecone(api_key="**")
+
+async def getPinecone():
+    load_dotenv()
+    PINECONE_API = os.getenv("PINECONE_API")
+    pc = Pinecone(api_key=PINECONE_API)
 
     index_name = "reminder"
     if not pc.has_index(index_name):
@@ -14,20 +19,22 @@ def getPinecone():
                 "field_map":{"text": "chunk_text"}
             }
         )
+    return pc
 
-def upsert(prompt: str, pc, id):
+async def upsert(text: str, pc, id, metadata):
     index = pc.Index("reminder")
     index.upsert_records(
         "reminder_namespace",
         [
             {
                 "_id": id,
-                "text": prompt
+                "chunk_text": text,
+                "metadata": metadata
             }
         ]
     )
 
-def search(query: str, pc, top_k: int = 5):
+async def search(query: str, pc, top_k: int = 5):
     index = pc.Index("reminder")
     results = index.query_records(
         namespace="reminder_namespace",
